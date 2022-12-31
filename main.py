@@ -8,7 +8,6 @@ from functools import cmp_to_key
 import pyautogui as pg
 
 
-
 # get threshold value
 def calcThreshold(hist, accHist, iFrom, iTo):
     iFrom, iTo = int(iFrom), int(iTo)
@@ -65,29 +64,52 @@ def enhance_image(img):
     return enhanced_image
 
 
-def compare(item1, item2):
-    return item2[0] - item1[0]
+def getSingleBoundaries(contour):
+    return [
+        int(np.min(contour[:, 0])), int(np.max(contour[:, 0])),
+        int(np.min(contour[:, 1])), int(np.max(contour[:, 1]))
+    ]
 
 
-def detectHand(binaryImg, mainImg):
-    contours = find_contours(binaryImg,  fully_connected='high')
-    contours = [
-        [
-            int(np.min(contour[:, 0])), int(np.max(contour[:, 0])),
-            int(np.min(contour[:, 1])), int(np.max(contour[:, 1]))
-        ]
-        for contour in contours]
-    contours = sorted(contours, key=cmp_to_key(compare))
+def getContoursBoundaries(img):
+    contours = find_contours(img,  fully_connected='high')
+    return [getSingleBoundaries(contour) for contour in contours]
+
+
+def getSortedContoursBoundaries(img, compare_function):
+    contours = getContoursBoundaries(img)
+    return sorted(contours, key=cmp_to_key(compare_function))
+
+
+def getCompareFunction(preferRightHand):
+    if preferRightHand:
+        return lambda item1, item2: item2[0] - item1[0]
+    return lambda item1, item2: item1[0] - item2[0]
+
+
+def isThisImageRepresentsHand(img):
+    mp_hands = mp.solutions.hands
+    hand = mp_hands.Hands()
+    result = hand.process(img)
+    return result.multi_hand_landmarks
+
+
+def isContourContainsHand(contour, img):
+    [Xmin, Xmax, Ymin, Ymax] = contour
+    if Xmax - Xmin >= 50 and Ymax - Ymin >= 50:
+        contour_img = img[max(Xmin-70, 0):min(Xmax+70, img.shape[0]),
+                          max(Ymin-70, 0):min(Ymax+70, img.shape[1])]
+        return isThisImageRepresentsHand(contour_img)
+
+
+def detectHand(binaryImg, mainImg, preferRightHand):
+    contours = getSortedContoursBoundaries(
+        binaryImg, getCompareFunction(preferRightHand)
+    )
     for contour in contours:
-        [Xmin, Xmax, Ymin, Ymax] = contour
-        if Xmax - Xmin >= 50 and Ymax - Ymin >= 50:
-            temp_image = mainImg[max(Xmin-70, 0):min(Xmax+70, mainImg.shape[0]),
-                                max(Ymin-70, 0):min(Ymax+70, mainImg.shape[1])]
-            mp_hands = mp.solutions.hands
-            hand = mp_hands.Hands()
-            result = hand.process(temp_image)
-            if result.multi_hand_landmarks:
-                return np.array(binaryImg[Xmin:Xmax, Ymin:Ymax]), (Xmin, Xmax, Ymin, Ymax)
+        if isContourContainsHand(contour, mainImg):
+            [Xmin, Xmax, Ymin, Ymax] = contour
+            return np.array(binaryImg[Xmin:Xmax, Ymin:Ymax]), (Xmin, Xmax, Ymin, Ymax)
     return None, (0, 0)
 
 
@@ -151,8 +173,6 @@ def detectFingers(original):
     img = np.copy(original)
     img[Xmin:Xmax, Ymin:Ymax] = 0
     img = original.astype(int) - img.astype(int)
-
-    show_images([img])
     return (Xmax - Xmin), (Xmax, (Ymin+Ymax)//2)
 
 
@@ -178,21 +198,20 @@ def isMovingBy(pos1, pos2):
     return pos1[0] - pos2[0], pos1[1] - pos2[1]
 
 
-def main(closeValue):
-    cap = cv.VideoCapture(0)
+def main(programInfo):
+    print("prefered one", programInfo.getIsRightHandPreferred())
+    cap = cv.VideoCapture(-1)
     cap.set(cv.CAP_PROP_BUFFERSIZE, 2)
     lastPosition = (0, 0)
     lastLength = 0
-    while True:
+    while not programInfo.closeDetecting():
         img = captureImage(cap)
         sleep(0.5)
-
-        if closeValue.closeDetecting():
-            break
-        
         binary_image = get_image_with_skin_color(img)
         binary_image = enhance_image(binary_image)
-        hand_image, hand_margin = detectHand(binary_image, img)
+        hand_image, hand_margin = detectHand(
+            binary_image, img, programInfo.preferRightHand
+        )
         length, finger_center = detectFingers(hand_image)
         if finger_center is None:
             continue
@@ -213,7 +232,3 @@ def main(closeValue):
 
         lastLength = length
         lastPosition = finger_center_in_image
-
-
-# if __name__ == "__main__":
-#     main()
