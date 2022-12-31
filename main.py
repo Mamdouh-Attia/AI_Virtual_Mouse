@@ -5,7 +5,6 @@ import cv2 as cv
 import mediapipe as mp
 from time import sleep
 from functools import cmp_to_key
-import os
 import pyautogui as pg
 
 
@@ -152,6 +151,8 @@ def detectFingers(original):
     img = np.copy(original)
     img[Xmin:Xmax, Ymin:Ymax] = 0
     img = original.astype(int) - img.astype(int)
+
+    show_images([img])
     return (Xmax - Xmin), (Xmax, (Ymin+Ymax)//2)
 
 
@@ -177,8 +178,7 @@ def isMovingBy(pos1, pos2):
     return pos1[0] - pos2[0], pos1[1] - pos2[1]
 
 
-def main():
-    #
+def main(closeValue):
     cap = cv.VideoCapture(0)
     cap.set(cv.CAP_PROP_BUFFERSIZE, 2)
     lastPosition = (0, 0)
@@ -186,6 +186,10 @@ def main():
     while True:
         img = captureImage(cap)
         sleep(0.5)
+
+        if closeValue.closeDetecting():
+            break
+        
         binary_image = get_image_with_skin_color(img)
         binary_image = enhance_image(binary_image)
         hand_image, hand_margin = detectHand(binary_image, img)
@@ -211,5 +215,5 @@ def main():
         lastPosition = finger_center_in_image
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
