@@ -16,7 +16,7 @@ from skimage.filters import median
 from skimage.feature import canny
 from skimage.measure import label, find_contours
 from skimage.color import label2rgb
-
+from skimage.morphology import *
 # Edges
 from skimage.filters import sobel_h, sobel, sobel_v, roberts, prewitt
 
