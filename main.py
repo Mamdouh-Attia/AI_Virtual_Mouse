@@ -9,6 +9,7 @@ import os
 import pyautogui as pg
 
 
+
 # get threshold value
 def calcThreshold(hist, accHist, iFrom, iTo):
     iFrom, iTo = int(iFrom), int(iTo)
@@ -17,8 +18,6 @@ def calcThreshold(hist, accHist, iFrom, iTo):
         hist[iFrom:iTo+1] * np.arange(iFrom, iTo+1)
     ) / numOfPixels
     return round(mean)
-
-# np.arange([1 , 2] < 3)
 
 
 def avgThreshold(hist, accHist, Tinit):
@@ -80,13 +79,11 @@ def detectHand(binaryImg, mainImg):
         ]
         for contour in contours]
     contours = sorted(contours, key=cmp_to_key(compare))
-    # temp_image = np.zeros_like(mainImg)
     for contour in contours:
         [Xmin, Xmax, Ymin, Ymax] = contour
         if Xmax - Xmin >= 50 and Ymax - Ymin >= 50:
             temp_image = mainImg[max(Xmin-70, 0):min(Xmax+70, mainImg.shape[0]),
-                                 max(Ymin-70, 0):min(Ymax+70, mainImg.shape[1])]
-            # show_images([temp_image,binaryImg[Xmin:Xmax, Ymin:Ymax]])
+                                max(Ymin-70, 0):min(Ymax+70, mainImg.shape[1])]
             mp_hands = mp.solutions.hands
             hand = mp_hands.Hands()
             result = hand.process(temp_image)
@@ -99,7 +96,6 @@ def captureImage(cap):
     success, img = cap.read()
     img = cv.flip(img, 1)
     imgRGB = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    # print(imgRGB)
     if cv.waitKey(1) & 0xff == ord('q'):
         cv.destroyAllWindows()
         cap.release()
@@ -115,10 +111,7 @@ def detectFingers(original):
     if original is None:
         return None, None
     image = original > 0.9
-    # show_images([image])
     numberOfIteration = (image.shape[0]+image.shape[1])//12
-    # print(image.shape, numberOfIteration)
-    # kernel = np.ones((5, 5), np.uint8)
     for i in range(numberOfIteration):
         image = binary_erosion(image)
     for i in range(numberOfIteration):
@@ -147,8 +140,6 @@ def detectFingers(original):
         original = binary_erosion(original)
     for i in range(5):
         original = binary_dilation(original)
-    # show_images([original])
-
     fingersCotours = find_contours(original)
     fingersCotours = sorted(fingersCotours, key=cmp_to_key(compareFingers))
     if len(fingersCotours) == 0:
@@ -159,7 +150,6 @@ def detectFingers(original):
     Xmin = int(np.min(contour[:, 0]))
     Xmax = int(np.max(contour[:, 0]))
     img = np.copy(original)
-
     img[Xmin:Xmax, Ymin:Ymax] = 0
     img = original.astype(int) - img.astype(int)
     return (Xmax - Xmin), (Xmax, (Ymin+Ymax)//2)
@@ -174,9 +164,9 @@ def get_info_from_fingers(fingers_info):
 
 
 # moving mouse coordinates
-def move_mouse_by_defference(x_new, y_new):
+def move_mouse_by_difference(x_new, y_new):
     x0, y0 = pg.position()
-    pg.moveTo(x0 + x_new, y0 + y_new)
+    pg.moveTo(x0 - y_new, y0 - x_new)
 
 
 def click_the_mouse():
@@ -213,7 +203,7 @@ def main():
             lastPosition = finger_center_in_image
         isRisingHand = length >= hand_image.shape[0] // 3
         if (x_change >= 3 or y_change >= 3) and isRisingHand:
-            move_mouse_by_defference(x_change, y_change)
+            move_mouse_by_difference(x_change, y_change)
         elif lastLength - length >= 30:
             click_the_mouse()
 
