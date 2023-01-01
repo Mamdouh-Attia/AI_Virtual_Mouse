@@ -169,8 +169,6 @@ def move_mouse_by_difference(x_new, y_new):
 
     
     x_cor,y_cor = x0 - y_new, y0 - x_new
-
-    print(min(xmax,max(0,x_cor)), min(ymax,max(0,y_cor)))
     
     pg.moveTo(min(xmax,max(0,x_cor)), min(ymax,max(0,y_cor)))
 
