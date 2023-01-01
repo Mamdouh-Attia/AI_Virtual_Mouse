@@ -128,6 +128,13 @@ def compareFingers(contour1, contour2):
     return int(np.max(contour1[:, 0])-np.min(contour1[:, 0])) - int(np.max(contour2[:, 0])-np.min(contour2[:, 0]))
 
 
+def removeInsideTheCircle(img, X1, X2, Y1, Y2, center, radius):
+    for i in range(X1, X2):
+        for j in range(Y1, Y2):
+            if math.dist((i, j), center) < radius:
+                img[i, j] = 0
+
+
 def detectFingers(original):
     if original is None:
         return None, None
@@ -152,10 +159,33 @@ def detectFingers(original):
     center = ((Xmin+Xmax)//2, (Ymin+Ymax)//2)
     radius = center[0] - Xmin
 
-    for i in range(image.shape[0]):
-        for j in range(image.shape[1]):
-            if math.dist((i, j), center) < radius:
-                original[i, j] = 0
+    # center
+    # radius
+    smallLength = int(radius / math.sqrt(2))
+    largeLength = radius
+    original[center[0]-smallLength:center[0]+smallLength,
+             center[1]-smallLength:center[1]+smallLength] = 0
+
+    removeInsideTheCircle(
+        original,
+        center[0]-largeLength, center[0] + largeLength,
+        center[1]-largeLength, center[1]-smallLength,
+        center, radius
+    )
+
+    removeInsideTheCircle(
+        original,
+        center[0]-largeLength, center[0]-smallLength,
+        center[1]-smallLength, center[1]+smallLength,
+        center, radius
+    )
+
+    removeInsideTheCircle(
+        original,
+        center[0]+smallLength, center[0]+largeLength,
+        center[1]-smallLength, center[1]+smallLength,
+        center, radius
+    )
 
     for i in range(5):
         original = binary_erosion(original)
