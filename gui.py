@@ -53,7 +53,10 @@ class Ui_MainWindow(object):
         self.SW.resize(200,100)
         self.location_on_the_screen()
         self.SW.show()
-        main(closeValue)
+        try:
+            main(closeValue)
+        except:
+            print("program closed => the memory is full")
 
     def uncheck(self, state):
         if state == True:

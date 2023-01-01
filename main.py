@@ -151,8 +151,6 @@ def detectFingers(original):
     img = np.copy(original)
     img[Xmin:Xmax, Ymin:Ymax] = 0
     img = original.astype(int) - img.astype(int)
-
-    show_images([img])
     return (Xmax - Xmin), (Xmax, (Ymin+Ymax)//2)
 
 
@@ -167,7 +165,14 @@ def get_info_from_fingers(fingers_info):
 # moving mouse coordinates
 def move_mouse_by_difference(x_new, y_new):
     x0, y0 = pg.position()
-    pg.moveTo(x0 - y_new, y0 - x_new)
+    xmax, ymax = pg.size()
+
+    
+    x_cor,y_cor = x0 - y_new, y0 - x_new
+
+    print(min(xmax,max(0,x_cor)), min(ymax,max(0,y_cor)))
+    
+    pg.moveTo(min(xmax,max(0,x_cor)), min(ymax,max(0,y_cor)))
 
 
 def click_the_mouse():
@@ -185,7 +190,8 @@ def main(closeValue):
     lastLength = 0
     while True:
         img = captureImage(cap)
-        sleep(0.5)
+
+        sleep(0.2)
 
         if closeValue.closeDetecting():
             break
@@ -193,6 +199,7 @@ def main(closeValue):
         binary_image = get_image_with_skin_color(img)
         binary_image = enhance_image(binary_image)
         hand_image, hand_margin = detectHand(binary_image, img)
+
         length, finger_center = detectFingers(hand_image)
         if finger_center is None:
             continue
