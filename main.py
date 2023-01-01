@@ -175,6 +175,13 @@ def detectFingers(original):
 
     removeInsideTheCircle(
         original,
+        center[0]-largeLength, center[0] + largeLength,
+        center[1]+smallLength, center[1]+largeLength,
+        center, radius
+    )
+
+    removeInsideTheCircle(
+        original,
         center[0]-largeLength, center[0]-smallLength,
         center[1]-smallLength, center[1]+smallLength,
         center, radius
